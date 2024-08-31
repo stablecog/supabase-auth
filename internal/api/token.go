@@ -324,10 +324,17 @@ func (a *API) generateAccessToken(r *http.Request, tx *storage.Connection, user 
 
 	issuedAt := time.Now().UTC()
 	expiresAt := issuedAt.Add(time.Second * time.Duration(config.JWT.Exp))
+
 	dontEncodeUserMetaData := true
 	var userMetaData map[string]interface{} = user.UserMetaData
 	if dontEncodeUserMetaData {
 		userMetaData = map[string]interface{}{}
+	}
+
+	dontEncodeAppMetaData := true
+	var appMetaData map[string]interface{} = user.AppMetaData
+	if dontEncodeAppMetaData {
+		appMetaData = map[string]interface{}{}
 	}
 
 	claims := &hooks.AccessTokenClaims{
@@ -340,7 +347,7 @@ func (a *API) generateAccessToken(r *http.Request, tx *storage.Connection, user 
 		},
 		Email:                         user.GetEmail(),
 		Phone:                         user.GetPhone(),
-		AppMetaData:                   user.AppMetaData,
+		AppMetaData:                   appMetaData,
 		UserMetaData:                  userMetaData,
 		Role:                          user.Role,
 		SessionId:                     sid,
