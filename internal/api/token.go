@@ -325,18 +325,6 @@ func (a *API) generateAccessToken(r *http.Request, tx *storage.Connection, user 
 	issuedAt := time.Now().UTC()
 	expiresAt := issuedAt.Add(time.Second * time.Duration(config.JWT.Exp))
 
-	dontEncodeUserMetaData := true
-	var userMetaData map[string]interface{} = user.UserMetaData
-	if dontEncodeUserMetaData {
-		userMetaData = map[string]interface{}{}
-	}
-
-	dontEncodeAppMetaData := true
-	var appMetaData map[string]interface{} = user.AppMetaData
-	if dontEncodeAppMetaData {
-		appMetaData = map[string]interface{}{}
-	}
-
 	claims := &hooks.AccessTokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   user.ID.String(),
@@ -347,8 +335,8 @@ func (a *API) generateAccessToken(r *http.Request, tx *storage.Connection, user 
 		},
 		Email:                         user.GetEmail(),
 		Phone:                         user.GetPhone(),
-		AppMetaData:                   appMetaData,
-		UserMetaData:                  userMetaData,
+		AppMetaData:                   user.AppMetaData,
+		UserMetaData:                  map[string]interface{}{},
 		Role:                          user.Role,
 		SessionId:                     sid,
 		AuthenticatorAssuranceLevel:   aal.String(),
@@ -419,13 +407,17 @@ func (a *API) issueRefreshToken(r *http.Request, conn *storage.Connection, user 
 		return nil, err
 	}
 
+	userWithoutExtras := user
+	userWithoutExtras.UserMetaData = models.JSONMap{}
+	userWithoutExtras.Identities = []models.Identity{}
+
 	return &AccessTokenResponse{
 		Token:        tokenString,
 		TokenType:    "bearer",
 		ExpiresIn:    config.JWT.Exp,
 		ExpiresAt:    expiresAt,
 		RefreshToken: refreshToken.Token,
-		User:         user,
+		User:         userWithoutExtras,
 	}, nil
 }
 
@@ -483,13 +475,18 @@ func (a *API) updateMFASessionAndClaims(r *http.Request, tx *storage.Connection,
 	if err != nil {
 		return nil, err
 	}
+
+	userWithoutExtras := user
+	userWithoutExtras.UserMetaData = models.JSONMap{}
+	userWithoutExtras.Identities = []models.Identity{}
+
 	return &AccessTokenResponse{
 		Token:        tokenString,
 		TokenType:    "bearer",
 		ExpiresIn:    config.JWT.Exp,
 		ExpiresAt:    expiresAt,
 		RefreshToken: refreshToken.Token,
-		User:         user,
+		User:         userWithoutExtras,
 	}, nil
 }
 

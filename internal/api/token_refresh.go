@@ -238,13 +238,17 @@ func (a *API) RefreshTokenGrant(ctx context.Context, w http.ResponseWriter, r *h
 				return internalServerError("failed to update session information").WithInternalError(terr)
 			}
 
+			userWithoutExtras := user
+			userWithoutExtras.UserMetaData = models.JSONMap{}
+			userWithoutExtras.Identities = []models.Identity{}
+
 			newTokenResponse = &AccessTokenResponse{
 				Token:        tokenString,
 				TokenType:    "bearer",
 				ExpiresIn:    config.JWT.Exp,
 				ExpiresAt:    expiresAt,
 				RefreshToken: issuedToken.Token,
-				User:         user,
+				User:         userWithoutExtras,
 			}
 
 			return nil
